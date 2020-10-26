@@ -1,0 +1,51 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: echo-app
+  labels:
+    app: echo
+spec:
+  containers:
+    - name: echo
+      image: hashicorp/http-echo
+      args:
+        - "-text=hello from the cluster"
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: echo-service
+spec:
+  type: ClusterIP
+  selector:
+    app: echo
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5678
+      protocol: TCP
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: echo-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  rules:
+    - host: cluster.emby.red
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: echo-service
+              servicePort: 80
+  tls:
+  - hosts:
+      - cluster.emby.red
+    secretName: echo-cert
